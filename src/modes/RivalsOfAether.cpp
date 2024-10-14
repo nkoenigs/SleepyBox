@@ -15,39 +15,40 @@ RivalsOfAether::RivalsOfAether(socd::SocdType socd_type) : ControllerMode(socd_t
 }
 
 void RivalsOfAether::UpdateDigitalOutputs(InputState &inputs, OutputState &outputs) {
-outputs.a = inputs.a;
-    outputs.b = inputs.b || inputs.y;
+    outputs.a = inputs.a;
+    outputs.b = inputs.b;
     outputs.x = inputs.x;
-    outputs.y = inputs.midshield;
+    outputs.y = inputs.y;
     outputs.buttonR = inputs.z;
+    if (inputs.nunchuk_connected) {
+        // Lightshield with C button.
+        if (inputs.nunchuk_c) {
+            outputs.triggerLAnalog = 49;
+        }
+        outputs.triggerLDigital = inputs.nunchuk_z;
+    } else {
+        outputs.triggerLDigital = inputs.l;
+    }
+    outputs.triggerRDigital = inputs.r;
     outputs.start = inputs.start;
     outputs.select = inputs.select;
     outputs.home = inputs.home;
     outputs.leftStickClick = inputs.lightshield;
     outputs.rightStickClick = inputs.midshield;
 
-    // Turn on D-Pad layer by holding Mod X + Mod Y.
+    // Activate D-Pad layer by holding Mod X + Mod Y.
     if (inputs.mod_x && inputs.mod_y) {
-        outputs.dpadUp = inputs.c_down;
-        outputs.dpadDown = inputs.c_up;
+        outputs.dpadUp = inputs.c_up;
+        outputs.dpadDown = inputs.c_down;
         outputs.dpadLeft = inputs.c_left;
         outputs.dpadRight = inputs.c_right;
     }
+
+    outputs.select = inputs.select;
+    outputs.home = inputs.home;
 }
 
-void RivalsOfAether::UpdateAnalogOutputs(InputState &inputs, OutputState &outputs) {    
-    // set a tilt modifer
-    auto set_analog_stick = [&](int x_percent, int y_percent) {
-        outputs.leftStickX = 128 + directions.x * x_percent;
-        outputs.leftStickY = 128 + directions.y * y_percent;
-    };
-
-    // set the left stick to a forced value
-    auto force_analog_stick = [&](int x_value, int y_value) {
-        outputs.leftStickX = x_value;
-        outputs.leftStickY = y_value;
-    };
-
+void RivalsOfAether::UpdateAnalogOutputs(InputState &inputs, OutputState &outputs) {
     // Coordinate calculations to make modifier handling simpler.
     UpdateDirections(
         inputs.left,
@@ -56,8 +57,8 @@ void RivalsOfAether::UpdateAnalogOutputs(InputState &inputs, OutputState &output
         inputs.up,
         inputs.c_left,
         inputs.c_right,
-        inputs.c_up, // swapped up and down
         inputs.c_down,
+        inputs.c_up,
         ANALOG_STICK_MIN,
         ANALOG_STICK_NEUTRAL,
         ANALOG_STICK_MAX,
@@ -151,12 +152,15 @@ void RivalsOfAether::UpdateAnalogOutputs(InputState &inputs, OutputState &output
         outputs.rightStickY = 128;
     }
 
-    // light sheild modifers
-    if (inputs.lightshield) {
-        set_analog_stick(28, 100); // force jolt
+    // Shut off C-stick when using D-Pad layer.
+    if (inputs.mod_x && inputs.mod_y) {
+        outputs.rightStickX = 128;
+        outputs.rightStickY = 128;
     }
 
-    // Shut off A-stick when using D-Pad layer.
-    if (inputs.mod_x && inputs.mod_y) force_analog_stick(128, 128);
-
+    // Nunchuk overrides left stick.
+    if (inputs.nunchuk_connected) {
+        outputs.leftStickX = inputs.nunchuk_x;
+        outputs.leftStickY = inputs.nunchuk_y;
+    }
 }
